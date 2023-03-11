@@ -1,0 +1,3 @@
+env:
+  steam:
+    api-domain: http://api.steampowered.com
