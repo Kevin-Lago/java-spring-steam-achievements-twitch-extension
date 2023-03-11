@@ -10,7 +10,7 @@ import java.util.Arrays;
 import java.util.List;
 
 @RestController
-@RequestMapping
+@RequestMapping("/api/achievements")
 public class AchievementController {
     @GetMapping
     public String getAchievements() {
