@@ -4,3 +4,9 @@
 [submodule "javascript-react-steam-achievements-twitch-extension"]
 	path = javascript-react-steam-achievements-twitch-extension
 	url = https://github.com/Kevin-Lago/javascript-react-steam-achievements-twitch-extension-ui.git
+[submodule "javascript-react-steam-achievements-twitch-extensions-ui"]
+	path = javascript-react-steam-achievements-twitch-extensions-ui
+	url = https://github.com/Kevin-Lago/javascript-react-steam-achievements-twitch-extension-ui.git
+[submodule "javascript-react-steam-achievements-twitch-extension-ui"]
+	path = javascript-react-steam-achievements-twitch-extension-ui
+	url = https://github.com/Kevin-Lago/javascript-react-steam-achievements-twitch-extension-ui.git

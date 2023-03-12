@@ -1,21 +1,20 @@
 package com.foxobyte.steam_achievements.client.steam;
 
+import com.foxobyte.steam_achievements.client.steam.query.SteamGetOwnedGamesQuery;
 import com.foxobyte.steam_achievements.client.steam.response.SteamGetOwnedGamesResponse;
-import jakarta.websocket.server.PathParam;
-import org.springframework.cloud.netflix.feign.FeignClient;
+import feign.Param;
+import feign.QueryMap;
+import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.cloud.openfeign.SpringQueryMap;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
 @FeignClient(name = "SteamFeignClient", url = "${env.steam.api-domain}")
 public interface SteamFeignClient {
-    @GetMapping("/IPlayerService/GetOwnedGames/v0001")
+    @GetMapping(value = "/IPlayerService/GetOwnedGames/v0001/", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
     ResponseEntity<SteamGetOwnedGamesResponse> getOwnedGames(
-            @RequestParam("key") String apiKey,
-            @RequestParam("steamid") String steamID,
-            @RequestParam("include_appinfo") Boolean includeAppInfo,
-            @RequestParam("include_played_free_games") Boolean includePlayedFreeGames,
-            @RequestParam("appids_filter") Object appIdsFilter,
-            @RequestParam("format") String responseFormat
+            @SpringQueryMap SteamGetOwnedGamesQuery steamGetOwnedGamesQuery
     );
 }

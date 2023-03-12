@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.Arrays;
 import java.util.List;
 
 @RestController
@@ -18,11 +19,18 @@ public class GameController {
 
     @GetMapping
     public List<Game> getPlayerGames() {
-        return null;
+        return service.getGames();
     }
 
     @GetMapping("/test")
     public List<SteamGame> getSteamGames() {
-        return service.getSteamGames();
+        try {
+            return service.getSteamGames();
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+            Arrays.stream(e.getStackTrace()).forEach(System.out::println);
+
+            return null;
+        }
     }
 }
