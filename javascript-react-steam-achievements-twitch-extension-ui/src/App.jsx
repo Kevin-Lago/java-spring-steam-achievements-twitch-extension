@@ -52,7 +52,7 @@ export default class App extends Component {
     }
 
     componentDidMount() {
-        fetch("http://localhost:8080/api/games")
+        fetch("https://steam-achievements-twitch-ext.herokuapp.com/api/games")
             .then((response) => {
                 if (!response.ok) {
                     throw new Error("Failed to fetch games");
