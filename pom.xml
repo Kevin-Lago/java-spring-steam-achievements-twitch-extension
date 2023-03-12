@@ -95,7 +95,7 @@
 						<goals>
 							<goal>yarn</goal>
 						</goals>
-<!--						<phase>install</phase>-->
+						<phase>prepare-package</phase>
 						<configuration>
 							<arguments>build</arguments>
 						</configuration>

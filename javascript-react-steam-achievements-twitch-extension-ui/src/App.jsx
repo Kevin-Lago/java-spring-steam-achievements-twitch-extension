@@ -1,5 +1,4 @@
 import React, { Component } from 'react';
-import ajax from 'ajax';
 import './App.css';
 import Achievement from './components/achievement/Achievement';
 import Header from './components/header/Header';
@@ -53,13 +52,20 @@ export default class App extends Component {
     }
 
     componentDidMount() {
-        ajax.get("localhost:8080/api/games/test")
-            .then(data => {
-                console.log(data)
-            })
-            .error(error => {
+        fetch("http://localhost:8080/api/games")
+            .then((response) => {
+                if (!response.ok) {
+                    throw new Error("Failed to fetch games");
+                }
 
-            });
+                response.json().then(body => {
+                    this.setState({
+                        games: body
+                    })
+                })
+            }).catch((error) => {
+                console.log(error)
+            })
     }
 
     fetchAchievements() {
