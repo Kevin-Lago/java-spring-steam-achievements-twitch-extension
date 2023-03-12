@@ -81,6 +81,7 @@
 
 					<execution>
 						<id>yarn-install</id>
+<!--						<phase>install</phase>-->
 						<goals>
 							<goal>yarn</goal>
 						</goals>
@@ -94,7 +95,7 @@
 						<goals>
 							<goal>yarn</goal>
 						</goals>
-						<phase>prepare-package</phase>
+<!--						<phase>install</phase>-->
 						<configuration>
 							<arguments>build</arguments>
 						</configuration>
