@@ -16,7 +16,7 @@
 	<properties>
 		<java.version>17</java.version>
 		<spring-cloud.version>2022.0.1</spring-cloud.version>
-		<frontend-src-dir>${project.basedir}/javascript-react-steam-achievements-twitch-extension-ui</frontend-src-dir>
+		<frontend-src-dir>${project.basedir}/ui</frontend-src-dir>
 		<node.version>v19.7.0</node.version>
 		<yarn.version>v1.22.17</yarn.version>
 		<frontend-maven-plugin.version>1.12.1</frontend-maven-plugin.version>
@@ -32,7 +32,19 @@
 			<artifactId>spring-cloud-starter-feign</artifactId>
 			<version>1.4.7.RELEASE</version>
 		</dependency>
-
+		<!-- https://mvnrepository.com/artifact/org.springframework.boot/spring-boot-starter-data-jpa -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-data-jpa</artifactId>
+			<version>3.0.4</version>
+		</dependency>
+		<!-- https://mvnrepository.com/artifact/mysql/mysql-connector-java -->
+		<dependency>
+			<groupId>mysql</groupId>
+			<artifactId>mysql-connector-java</artifactId>
+			<scope>runtime</scope>
+			<version>8.0.32</version>
+		</dependency>
 
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
