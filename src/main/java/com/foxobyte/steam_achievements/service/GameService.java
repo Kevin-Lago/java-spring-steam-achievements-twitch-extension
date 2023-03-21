@@ -39,8 +39,14 @@ public class GameService {
     @Value("${env.steam.api-key}")
     private String API_KEY;
 
-    public List<Game> getGames() {
+    public List<Game> getAllGames() {
         return gameRepository.findAll();
+    }
+
+    public List<Game> getPlayerGames(Long steamId) {
+        Player player = new Player();
+        player.setSteamId(steamId);
+        return gameRepository.findByPlayers(player);
     }
 
     public Game createGame(SteamGame steamGame) throws Exception {
@@ -54,6 +60,7 @@ public class GameService {
             game.setAppId(steamGame.getAppId());
             game.setName(steamGame.getName());
             game.setImageUrl("http://media.steampowered.com/steamcommunity/public/images/apps/" + steamGame.getAppId() + "/" + steamGame.getImgIconUrl() + ".jpg");
+            gameRepository.save(game);
 
             Set<GameAchievement> gameAchievements = optionalSteamGameAchievements.get().stream().map(steamGameAchievement ->
                     gameAchievementRepository.findBySteamNameAndGame(steamGameAchievement.getName(), game).orElse(createGameAchievement(steamGameAchievement, game))

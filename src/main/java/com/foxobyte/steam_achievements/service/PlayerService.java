@@ -61,7 +61,7 @@ public class PlayerService {
 
         SteamOwnedGames steamOwnedGames = fetchSteamOwnedGames(steamId);
 
-        List<Game> games = steamOwnedGames.getGames().stream().limit(3).map(steamGame ->
+        List<Game> games = steamOwnedGames.getGames().stream().map(steamGame ->
             gameRepository.findById(steamGame.getAppId()).orElseGet(() -> {
                 try {
                     return gameService.createGame(steamGame);
