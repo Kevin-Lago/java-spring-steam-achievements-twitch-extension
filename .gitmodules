@@ -1,0 +1,3 @@
+[submodule "ui"]
+	path = ui
+	url = https://github.com/Kevin-Lago/javascript-react-steam-achievements-twitch-extension-ui.git

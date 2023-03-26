@@ -66,7 +66,7 @@ public class PlayerService {
             }
         });
 
-        List<Game> games = fetchSteamOwnedGames(steamId).getGames().stream().limit(3).map(steamGame ->
+        List<Game> games = fetchSteamOwnedGames(steamId).getGames().stream().map(steamGame ->
                 gameRepository.findById(steamGame.getAppId()).orElseGet(() -> {
                     try {
                         return createGame(steamGame);
