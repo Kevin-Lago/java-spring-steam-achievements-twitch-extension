@@ -1,6 +1,7 @@
 package com.foxobyte.steam_achievements.client.steam;
 
-import com.foxobyte.steam_achievements.client.steam.model.*;
+import com.foxobyte.steam_achievements.client.steam.model.SteamOwnedGames;
+import com.foxobyte.steam_achievements.client.steam.model.SteamPlayersDetails;
 import com.foxobyte.steam_achievements.client.steam.response.SteamApiResponse;
 import com.foxobyte.steam_achievements.client.steam.response.SteamGameSchemaResponse;
 import com.foxobyte.steam_achievements.client.steam.response.SteamPlayerStatisticsResponse;

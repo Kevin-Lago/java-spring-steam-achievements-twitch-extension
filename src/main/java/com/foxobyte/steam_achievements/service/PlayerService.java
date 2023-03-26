@@ -1,9 +1,9 @@
 package com.foxobyte.steam_achievements.service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.foxobyte.steam_achievements.client.steam.SteamFeignClient;
 import com.foxobyte.steam_achievements.client.steam.model.*;
 import com.foxobyte.steam_achievements.client.steam.response.SteamApiResponse;
+import com.foxobyte.steam_achievements.client.steam.response.SteamGameSchemaResponse;
 import com.foxobyte.steam_achievements.client.steam.response.SteamPlayerStatisticsResponse;
 import com.foxobyte.steam_achievements.dao.Game;
 import com.foxobyte.steam_achievements.dao.GameAchievement;
@@ -13,39 +13,47 @@ import com.foxobyte.steam_achievements.repo.GameAchievementRepository;
 import com.foxobyte.steam_achievements.repo.GameRepository;
 import com.foxobyte.steam_achievements.repo.PlayerAchievementRepository;
 import com.foxobyte.steam_achievements.repo.PlayerRepository;
+import feign.FeignException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.function.Function;
+import java.util.stream.Collectors;
 
+import static com.foxobyte.steam_achievements.config.Settings.API_KEY;
 import static com.foxobyte.steam_achievements.util.PrettyPrint.print;
 import static java.util.stream.Collectors.toMap;
 
+// ToDo: Persist achievement progress
 @Service
 public class PlayerService {
-    ObjectMapper mapper = new ObjectMapper();
-    @Autowired
-    private SteamFeignClient steamFeignClient;
-    @Autowired
-    private GameRepository gameRepository;
-    @Autowired
-    private GameAchievementRepository gameAchievementRepository;
-    @Autowired
-    private PlayerRepository playerRepository;
-    @Autowired
-    private PlayerAchievementRepository playerAchievementRepository;
-    @Autowired
-    private GameService gameService;
-    @Value("${env.steam.api-key}")
-    private String API_KEY;
+    private final SteamFeignClient steamFeignClient;
+    private final GameRepository gameRepository;
+    private final GameAchievementRepository gameAchievementRepository;
+    private final PlayerRepository playerRepository;
+    private final PlayerAchievementRepository playerAchievementRepository;
 
-    public Player getPlayer(Long steamId) {
-        return playerRepository.findById(steamId).get();
+    @Autowired
+    public PlayerService(
+            SteamFeignClient steamFeignClient,
+            GameRepository gameRepository,
+            GameAchievementRepository gameAchievementRepository,
+            PlayerRepository playerRepository,
+            PlayerAchievementRepository playerAchievementRepository
+    ) {
+        this.steamFeignClient = steamFeignClient;
+        this.gameRepository = gameRepository;
+        this.gameAchievementRepository = gameAchievementRepository;
+        this.playerRepository = playerRepository;
+        this.playerAchievementRepository = playerAchievementRepository;
+    }
+
+    public Player getPlayer(Long steamId) throws NoSuchElementException {
+        Optional<Player> player = playerRepository.findById(steamId);
+        if (player.isEmpty()) throw new NoSuchElementException("Couldn't find player with steam id: " + steamId);
+
+        return player.get();
     }
 
     public Player updatePlayerAchievements(Long steamId) throws Exception {
@@ -54,23 +62,19 @@ public class PlayerService {
                 return createPlayer(steamId);
             } catch (Exception e) {
                 print(e);
+                return null;
             }
-
-            return null;
         });
 
-        SteamOwnedGames steamOwnedGames = fetchSteamOwnedGames(steamId);
-
-        List<Game> games = steamOwnedGames.getGames().stream().map(steamGame ->
-            gameRepository.findById(steamGame.getAppId()).orElseGet(() -> {
-                try {
-                    return gameService.createGame(steamGame);
-                } catch (Exception e) {
-                    print(e);
-                }
-
-                return null;
-            })
+        List<Game> games = fetchSteamOwnedGames(steamId).getGames().stream().limit(3).map(steamGame ->
+                gameRepository.findById(steamGame.getAppId()).orElseGet(() -> {
+                    try {
+                        return createGame(steamGame);
+                    } catch (Exception e) {
+                        print(e);
+                        return null;
+                    }
+                })
         ).filter(Objects::nonNull).toList();
 
         // ToDo: Consider rewriting this
@@ -78,37 +82,26 @@ public class PlayerService {
             Map<String, GameAchievement> gameAchievements = game.getAchievements().stream().collect(toMap(GameAchievement::getSteamName, Function.identity()));
 
             try {
-                SteamPlayerStatistics steamPlayerStatistics = fetchSteamPlayerStatistics(steamId, game.getAppId());
-                List<PlayerAchievement> playerAchievements = steamPlayerStatistics.getAchievements().stream().map(e -> {
+                List<PlayerAchievement> playerAchievements = fetchSteamPlayerStatistics(steamId, game.getAppId()).getAchievements().stream().map(e -> {
                     Long gameAchievementId = gameAchievements.get(e.getApiName()).getId();
 
                     return playerAchievementRepository.findByAchievedAndUnlockTimeAndGameAchievementIdAndPlayer(
                             e.getAchieved(), e.getUnlockTime(), gameAchievementId, player
                     ).orElseGet(() ->
-                            createPlayerAchievement(e, gameAchievements.get(e.getApiName()), player)
+                            buildPlayerAchievement(e, gameAchievements.get(e.getApiName()), player)
                     );
                 }).toList();
 
                 playerAchievementRepository.saveAll(playerAchievements);
-                player.addGame(gameRepository.save(game));
-                playerRepository.save(player);
             } catch (Exception e) {
                 print(e);
             }
+
+            player.addGame(gameRepository.save(game));
+            playerRepository.save(player);
         });
 
-        return playerRepository.findById(steamId).get();
-    }
-
-    private PlayerAchievement createPlayerAchievement(SteamPlayerAchievement steamPlayerAchievement, GameAchievement gameAchievement, Player player) {
-        PlayerAchievement playerAchievement = new PlayerAchievement();
-
-        playerAchievement.setAchieved(steamPlayerAchievement.getAchieved());
-        playerAchievement.setUnlockTime(steamPlayerAchievement.getUnlockTime());
-        playerAchievement.setGameAchievement(gameAchievement);
-        playerAchievement.setPlayer(player);
-
-        return playerAchievementRepository.save(playerAchievement);
+        return player;
     }
 
     private Player createPlayer(Long steamId) throws Exception {
@@ -126,32 +119,106 @@ public class PlayerService {
         return playerRepository.save(player);
     }
 
+    public Game createGame(SteamGame steamGame) throws Exception {
+        SteamGameSchema steamGameSchema = fetchSteamGameSchema(steamGame.getAppId());
+        Optional<List<SteamGameAchievement>> optionalSteamGameAchievements = Optional.ofNullable(steamGameSchema)
+                .map(SteamGameSchema::getAvailableGameStats)
+                .map(SteamAvailableGameStats::getSteamGameAchievements);
+
+        if (optionalSteamGameAchievements.isPresent()) {
+            Game game = new Game();
+            game.setAppId(steamGame.getAppId());
+            game.setName(steamGame.getName());
+            game.setImageUrl("http://media.steampowered.com/steamcommunity/public/images/apps/" + steamGame.getAppId() + "/" + steamGame.getImgIconUrl() + ".jpg");
+            gameRepository.save(game);
+
+            Set<GameAchievement> gameAchievements = optionalSteamGameAchievements.get().stream().map(steamGameAchievement ->
+                    gameAchievementRepository.findBySteamNameAndGame(steamGameAchievement.getName(), game).orElse(buildGameAchievement(steamGameAchievement, game))
+            ).collect(Collectors.toSet());
+
+            gameAchievementRepository.saveAll(gameAchievements);
+            game.setAchievements(gameAchievements);
+
+            return game;
+        }
+
+        return null;
+    }
+
+    private PlayerAchievement buildPlayerAchievement(SteamPlayerAchievement steamPlayerAchievement, GameAchievement gameAchievement, Player player) {
+        PlayerAchievement playerAchievement = new PlayerAchievement();
+
+        playerAchievement.setAchieved(steamPlayerAchievement.getAchieved());
+        playerAchievement.setUnlockTime(steamPlayerAchievement.getUnlockTime());
+        playerAchievement.setGameAchievement(gameAchievement);
+        playerAchievement.setPlayer(player);
+
+        return playerAchievement;
+    }
+
+    private GameAchievement buildGameAchievement(SteamGameAchievement steamGameAchievement, Game game) {
+        GameAchievement gameAchievement = new GameAchievement();
+        gameAchievement.setSteamName(steamGameAchievement.getName());
+        gameAchievement.setDisplayName(steamGameAchievement.getDisplayName());
+        gameAchievement.setDescription(steamGameAchievement.getDescription());
+        gameAchievement.setIcon(steamGameAchievement.getIcon());
+        gameAchievement.setIconGray(steamGameAchievement.getIconGray());
+        gameAchievement.setGame(game);
+
+        return gameAchievement;
+    }
+
+    private SteamOwnedGames fetchSteamOwnedGames(Long steamId) throws Exception {
+        try {
+            SteamApiResponse<SteamOwnedGames> response = steamFeignClient.getOwnedGames(
+                    API_KEY, steamId, "true", "true", "json"
+            ).getBody();
+
+            if (response.getResponse() == null)
+                throw new Exception("Failed to fetch steam owned games with steam id: " + steamId);
+
+            return response.getResponse();
+        } catch (FeignException e) {
+            print(e);
+
+            return null;
+        }
+    }
+
+    private SteamGameSchema fetchSteamGameSchema(Long appId) throws Exception {
+        SteamGameSchemaResponse response = steamFeignClient.getSteamGameSchema(
+                API_KEY, appId, "english", "json"
+        ).getBody();
+
+        if (response.getGame() == null)
+            throw new Exception("Failed to fetch steam game schema for appId: " + appId);
+
+        return response.getGame();
+    }
+
     private SteamPlayerDetails fetchSteamPlayerDetails(Long steamId) throws Exception {
-        SteamApiResponse<SteamPlayersDetails> response = steamFeignClient.getSteamPlayersDetails(API_KEY, List.of(steamId), "json").getBody();
+        try {
+            SteamApiResponse<SteamPlayersDetails> response = steamFeignClient.getSteamPlayersDetails(
+                    API_KEY, List.of(steamId), "json"
+            ).getBody();
 
-        if (response.getResponse() == null)
-            throw new Exception("Failed to fetch steam players details with steam id: " + steamId);
+            if (response.getResponse() == null)
+                throw new Exception("Failed to fetch steam players details with steam id: " + steamId);
 
-        return response.getResponse().getPlayers().get(0);
+            return response.getResponse().getPlayers().get(0);
+        } catch (FeignException e) {
+            print(e);
+
+            return null;
+        }
     }
 
     private SteamPlayerStatistics fetchSteamPlayerStatistics(Long steamId, Long appId) throws Exception {
         SteamPlayerStatisticsResponse response = steamFeignClient.getPlayerStats(API_KEY, steamId, appId, "json", "english").getBody();
 
         if (response.getSteamPlayerStatistics() == null)
-            throw new Exception("Failed to fetch steam players statistics with steam id: " + steamId + " and app id: " + appId);
+            throw new Exception("Failed to fetch steam players statistics with steam id: " + steamId + " for app id: " + appId);
 
         return response.getSteamPlayerStatistics();
-    }
-
-    private SteamOwnedGames fetchSteamOwnedGames(Long steamId) throws Exception {
-        SteamApiResponse<SteamOwnedGames> response = steamFeignClient.getOwnedGames(
-                API_KEY, steamId, "true", "true", "json"
-        ).getBody();
-
-        if (response.getResponse() == null)
-            throw new Exception("Failed to fetch steam owned games with steam id: " + steamId);
-
-        return response.getResponse();
     }
 }

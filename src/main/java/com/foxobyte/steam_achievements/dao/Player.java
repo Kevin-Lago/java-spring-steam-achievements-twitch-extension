@@ -1,7 +1,5 @@
 package com.foxobyte.steam_achievements.dao;
 
-import com.fasterxml.jackson.annotation.JsonBackReference;
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 
@@ -19,8 +17,8 @@ public class Player {
     private Long timeCreated;
     @ManyToMany
     @JoinTable(name = "games_players",
-            joinColumns = { @JoinColumn(name = "steam_id") },
-            inverseJoinColumns = { @JoinColumn(name = "app_id") })
+            joinColumns = {@JoinColumn(name = "steam_id")},
+            inverseJoinColumns = {@JoinColumn(name = "app_id")})
     @JsonManagedReference(value = "player-games")
     private Set<Game> games;
 

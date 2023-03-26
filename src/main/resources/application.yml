@@ -9,7 +9,7 @@ spring:
     activate:
       on-profile: dev
   datasource:
-    url: jdbc:mysql://localhost:3306/steam_achievements?useSSL=false&createDatabaseIfNotExist=true
+    url: jdbc:mysql://localhost:3306/steam_achievements_test?useSSL=false&createDatabaseIfNotExist=true
     username: root
     password: root
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -25,4 +25,24 @@ env:
     media-domain: http://media.steampowered.com
     api-domain: http://api.steampowered.com
     api-key: A4E43909DCFD513F561D0E96A28F82D8
-    steam-id: 76561198015026212
+---
+spring:
+  config:
+    activate:
+      on-profile: prod
+  datasource:
+    url: jdbc:mysql://localhost:3306/steam_achievements?useSSL=false&createDatabaseIfNotExist=true
+    username: root
+    password: root
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  jpa:
+    generate-ddl: true
+    hibernate:
+      ddl-auto: update
+      dialect: org.hibernate.dialect.MySQLDialect
+      naming_strategy: org.hibernate.cfg.ImprovedNamingStrategy
+env:
+  steam:
+    media-domain: http://media.steampowered.com
+    api-domain: http://api.steampowered.com
+    api-key: A4E43909DCFD513F561D0E96A28F82D8

@@ -4,10 +4,8 @@ import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 
-import java.util.List;
 import java.util.Set;
 
-// ToDo: Eventually make this to persist progress once I figure out extracting progress
 @Entity
 @Table(name = "games")
 public class Game {
