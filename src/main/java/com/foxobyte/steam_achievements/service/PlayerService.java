@@ -56,93 +56,109 @@ public class PlayerService {
         return player.get();
     }
 
-    public Player updatePlayerAchievements(Long steamId) throws Exception {
-        Player player = playerRepository.findById(steamId).orElseGet(() -> {
-            try {
-                return createPlayer(steamId);
-            } catch (Exception e) {
-                print(e);
-                return null;
-            }
-        });
+    public List<GameAchievement> getPlayerAchievements(Long steamId, Long appId) {
+        List<GameAchievement> achievements = gameAchievementRepository.findByGame(appId);
 
-        List<Game> games = fetchSteamOwnedGames(steamId).getGames().stream().map(steamGame ->
-                gameRepository.findById(steamGame.getAppId()).orElseGet(() -> {
-                    try {
-                        return createGame(steamGame);
-                    } catch (Exception e) {
-                        print(e);
-                        return null;
-                    }
-                })
-        ).filter(Objects::nonNull).toList();
+        return null;
+    }
+
+    public Player updatePlayerAchievements(Long steamId) throws Exception {
+        Player player = createPlayerIfNotExist(steamId);
+        List<Game> games = fetchSteamOwnedGames(steamId).getGames().stream().limit(4).map(this::createGameIfNotExist).filter(Objects::nonNull).toList();
+        games.stream().forEach(this::createGameAchievementsIfNotExists);
 
         // ToDo: Consider rewriting this
         games.forEach(game -> {
             Map<String, GameAchievement> gameAchievements = game.getAchievements().stream().collect(toMap(GameAchievement::getSteamName, Function.identity()));
 
             try {
-                List<PlayerAchievement> playerAchievements = fetchSteamPlayerStatistics(steamId, game.getAppId()).getAchievements().stream().map(e -> {
-                    Long gameAchievementId = gameAchievements.get(e.getApiName()).getId();
+                if (game.getAchievements().size() > 0) {
+                    List<PlayerAchievement> playerAchievements = fetchSteamPlayerStatistics(steamId, game.getAppId()).getAchievements().stream().map(steamPlayerStatistics -> {
+                        GameAchievement gameAchievement = gameAchievements.get(steamPlayerStatistics.getApiName());
 
-                    return playerAchievementRepository.findByAchievedAndUnlockTimeAndGameAchievementIdAndPlayer(
-                            e.getAchieved(), e.getUnlockTime(), gameAchievementId, player
-                    ).orElseGet(() ->
-                            buildPlayerAchievement(e, gameAchievements.get(e.getApiName()), player)
-                    );
-                }).toList();
+                        PlayerAchievement playerAchievement = playerAchievementRepository.findByAchievedAndUnlockTimeAndGameAchievementIdAndPlayer(
+                                steamPlayerStatistics.getAchieved(), steamPlayerStatistics.getUnlockTime(), gameAchievement.getId(), player
+                        ).orElseGet(() ->
+                                buildPlayerAchievement(steamPlayerStatistics, gameAchievement, player)
+                        );
 
-                playerAchievementRepository.saveAll(playerAchievements);
+                        player.addGameAchievement(gameAchievement);
+                        return playerAchievement;
+                    }).toList();
+
+                    playerAchievementRepository.saveAll(playerAchievements);
+                }
             } catch (Exception e) {
                 print(e);
             }
 
-            player.addGame(gameRepository.save(game));
+            player.addGame(game);
             playerRepository.save(player);
         });
 
         return player;
     }
 
-    private Player createPlayer(Long steamId) throws Exception {
-        SteamPlayerDetails steamPlayerDetails = fetchSteamPlayerDetails(steamId);
+    private Player createPlayerIfNotExist(Long steamId) {
+        return playerRepository.findById(steamId).orElseGet(() -> {
+            try {
+                SteamPlayerDetails steamPlayerDetails = fetchSteamPlayerDetails(steamId);
 
-        Player player = new Player();
-        player.setSteamId(steamId);
-        player.setSteamName(steamPlayerDetails.getPersonaName());
-        player.setAvatarHash(steamPlayerDetails.getAvatarHash());
-        player.setTimeCreated(steamPlayerDetails.getTimeCreated());
-        player.setLastLogOff(steamPlayerDetails.getLastLogOff());
-        player.setProfileUrl(steamPlayerDetails.getProfileUrl());
-        player.setGames(new HashSet<>());
+                Player player = new Player();
+                player.setSteamId(steamId);
+                player.setSteamName(steamPlayerDetails.getPersonaName());
+                player.setAvatarHash(steamPlayerDetails.getAvatarHash());
+                player.setTimeCreated(steamPlayerDetails.getTimeCreated());
+                player.setLastLogOff(steamPlayerDetails.getLastLogOff());
+                player.setProfileUrl(steamPlayerDetails.getProfileUrl());
+                player.setGames(new HashSet<>());
 
-        return playerRepository.save(player);
+                return playerRepository.save(player);
+            } catch (Exception e) {
+                print(e);
+                return null;
+            }
+        });
     }
 
-    public Game createGame(SteamGame steamGame) throws Exception {
-        SteamGameSchema steamGameSchema = fetchSteamGameSchema(steamGame.getAppId());
-        Optional<List<SteamGameAchievement>> optionalSteamGameAchievements = Optional.ofNullable(steamGameSchema)
-                .map(SteamGameSchema::getAvailableGameStats)
-                .map(SteamAvailableGameStats::getSteamGameAchievements);
+    public Game createGameIfNotExist(SteamGame steamGame) {
+        return gameRepository.findById(steamGame.getAppId()).orElseGet(() -> {
+            try {
+                Game game = new Game();
+                game.setAppId(steamGame.getAppId());
+                game.setName(steamGame.getName());
+                game.setImageUrl("http://media.steampowered.com/steamcommunity/public/images/apps/" + steamGame.getAppId() + "/" + steamGame.getImgIconUrl() + ".jpg");
 
-        if (optionalSteamGameAchievements.isPresent()) {
-            Game game = new Game();
-            game.setAppId(steamGame.getAppId());
-            game.setName(steamGame.getName());
-            game.setImageUrl("http://media.steampowered.com/steamcommunity/public/images/apps/" + steamGame.getAppId() + "/" + steamGame.getImgIconUrl() + ".jpg");
-            gameRepository.save(game);
+                return gameRepository.save(game);
+            } catch (Exception e) {
+                print(e);
+                return null;
+            }
+        });
+    }
 
-            Set<GameAchievement> gameAchievements = optionalSteamGameAchievements.get().stream().map(steamGameAchievement ->
-                    gameAchievementRepository.findBySteamNameAndGame(steamGameAchievement.getName(), game).orElse(buildGameAchievement(steamGameAchievement, game))
-            ).collect(Collectors.toSet());
+    private List<GameAchievement> createGameAchievementsIfNotExists(Game game) {
+        try {
+            SteamGameSchema steamGameSchema = fetchSteamGameSchema(game.getAppId());
+            Optional<List<SteamGameAchievement>> optionalSteamGameAchievements = Optional.ofNullable(steamGameSchema)
+                    .map(SteamGameSchema::getAvailableGameStats)
+                    .map(SteamAvailableGameStats::getSteamGameAchievements);
 
-            gameAchievementRepository.saveAll(gameAchievements);
-            game.setAchievements(gameAchievements);
+            if (optionalSteamGameAchievements.isPresent()) {
+                Set<GameAchievement> gameAchievements = optionalSteamGameAchievements.get().stream().map(steamGameAchievement ->
+                        gameAchievementRepository.findBySteamNameAndGame(steamGameAchievement.getName(), game).orElse(buildGameAchievement(steamGameAchievement, game))
+                ).collect(Collectors.toSet());
 
-            return game;
+                game.setAchievements(gameAchievements);
+                return gameAchievementRepository.saveAll(gameAchievements);
+            }
+
+            return null;
+        } catch (Exception e) {
+            print(e);
+
+            return null;
         }
-
-        return null;
     }
 
     private PlayerAchievement buildPlayerAchievement(SteamPlayerAchievement steamPlayerAchievement, GameAchievement gameAchievement, Player player) {

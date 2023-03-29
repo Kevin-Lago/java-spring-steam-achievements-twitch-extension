@@ -11,7 +11,7 @@ public class PlayerAchievement {
     private Long id;
     private Boolean achieved;
     private String unlockTime;
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "steam_id", nullable = false)
     @JsonBackReference(value = "player-achievements")
     private Player player;

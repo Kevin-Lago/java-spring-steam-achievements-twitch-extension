@@ -35,6 +35,20 @@ public class PlayerController {
         }
     }
 
+    @GetMapping("/achievements")
+    public ResponseEntity<Object> getPlayerAchievements(
+            @RequestParam("steamId") Long steamId,
+            @RequestParam("appId") Long appId
+    ) {
+        try {
+            return new ResponseEntity<>(service.getPlayerAchievements(steamId, appId), HttpStatus.OK);
+        } catch (Exception e) {
+            print(e);
+
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
     @PutMapping
     public ResponseEntity<Player> updatePlayerAchievements(
             @RequestParam("steamId") Long steamId

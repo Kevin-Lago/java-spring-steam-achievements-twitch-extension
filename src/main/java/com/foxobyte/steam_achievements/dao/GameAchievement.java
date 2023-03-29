@@ -4,6 +4,8 @@ import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 
+import java.util.Set;
+
 @Entity
 @Table(name = "game_achievements")
 public class GameAchievement {
@@ -15,20 +17,16 @@ public class GameAchievement {
     private String description;
     private String icon;
     private String iconGray;
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "app_id", nullable = false)
     @JsonBackReference(value = "game-achievements")
     private Game game;
     @OneToOne(mappedBy = "gameAchievement")
     @JsonManagedReference(value = "player-achievement")
-    @AttributeOverrides(value = {
-            @AttributeOverride(name = "achieved", column = @Column(name = "achieved")),
-            @AttributeOverride(name = "unlockedTime", column = @Column(name = "unlocked_time"))
-    })
-    @AssociationOverrides(value = {
-            @AssociationOverride(name = "gameAchievement", joinColumns = @JoinColumn(name = "game_achievement_id"))
-    })
     private PlayerAchievement playerAchievement;
+    @ManyToMany(mappedBy = "gameAchievements", fetch = FetchType.LAZY)
+    @JsonBackReference(value = "player-game-achievements")
+    private Set<Player> players;
 
     public Long getId() {
         return id;
@@ -92,5 +90,17 @@ public class GameAchievement {
 
     public void setPlayerAchievement(PlayerAchievement playerAchievement) {
         this.playerAchievement = playerAchievement;
+    }
+
+    public Set<Player> getPlayers() {
+        return players;
+    }
+
+    public void setPlayers(Set<Player> players) {
+        this.players = players;
+    }
+
+    public void addPlayer(Player player) {
+        this.players.add(player);
     }
 }

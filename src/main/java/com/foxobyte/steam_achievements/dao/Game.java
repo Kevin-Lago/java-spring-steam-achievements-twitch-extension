@@ -13,12 +13,15 @@ public class Game {
     private Long appId;
     private String name;
     private String imageUrl;
-    @ManyToMany(mappedBy = "games")
+    @ManyToMany(mappedBy = "games", fetch = FetchType.LAZY)
     @JsonBackReference(value = "player-games")
     private Set<Player> players;
-    @OneToMany(mappedBy = "game")
+    @OneToMany(mappedBy = "game", fetch = FetchType.LAZY)
     @JsonManagedReference(value = "game-achievements")
     private Set<GameAchievement> achievements;
+//    @OneToMany(mappedBy = "game", fetch = FetchType.LAZY)
+//    @JsonManagedReference(value = "game-player-achievements")
+//    private Set<PlayerAchievement> playerAchievements;
 
     public Long getAppId() {
         return appId;
@@ -75,4 +78,12 @@ public class Game {
     public void addAchievement(GameAchievement gameAchievement) {
         this.achievements.add(gameAchievement);
     }
+
+//    public Set<PlayerAchievement> getPlayerAchievements() {
+//        return playerAchievements;
+//    }
+//
+//    public void setPlayerAchievements(Set<PlayerAchievement> playerAchievements) {
+//        this.playerAchievements = playerAchievements;
+//    }
 }

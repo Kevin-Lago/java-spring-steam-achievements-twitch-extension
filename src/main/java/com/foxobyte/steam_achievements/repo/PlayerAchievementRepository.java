@@ -4,6 +4,7 @@ import com.foxobyte.steam_achievements.dao.Player;
 import com.foxobyte.steam_achievements.dao.PlayerAchievement;
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.List;
 import java.util.Optional;
 
 public interface PlayerAchievementRepository extends JpaRepository<PlayerAchievement, Long> {
