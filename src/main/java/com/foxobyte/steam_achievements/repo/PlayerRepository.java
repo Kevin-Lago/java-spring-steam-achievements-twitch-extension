@@ -1,6 +1,6 @@
 package com.foxobyte.steam_achievements.repo;
 
-import com.foxobyte.steam_achievements.dao.Player;
+import com.foxobyte.steam_achievements.model.Player;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 

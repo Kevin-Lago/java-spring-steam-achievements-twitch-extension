@@ -1,6 +1,6 @@
 package com.foxobyte.steam_achievements.controller;
 
-import com.foxobyte.steam_achievements.dao.Player;
+import com.foxobyte.steam_achievements.model.Player;
 import com.foxobyte.steam_achievements.service.PlayerService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;

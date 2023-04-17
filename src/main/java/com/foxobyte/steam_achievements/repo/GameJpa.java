@@ -1,16 +1,13 @@
 package com.foxobyte.steam_achievements.repo;
 
-import com.foxobyte.steam_achievements.dao.Game;
-import com.foxobyte.steam_achievements.dao.Player;
+import com.foxobyte.steam_achievements.model.Game;
 import feign.Param;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 
 import java.util.List;
-import java.util.Optional;
-import java.util.Set;
 
-public interface GameRepository extends JpaRepository<Game, Long> {
+public interface GameJpa extends JpaRepository<Game, Long> {
 //    Game addGame(Game game);
 //
 //    Game getGame(Long appId);

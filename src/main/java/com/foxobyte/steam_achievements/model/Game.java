@@ -1,4 +1,4 @@
-package com.foxobyte.steam_achievements.dao;
+package com.foxobyte.steam_achievements.model;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
@@ -6,7 +6,6 @@ import jakarta.persistence.*;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
 @Entity
 @Table(name = "games")

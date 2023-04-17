@@ -5,21 +5,17 @@ import com.foxobyte.steam_achievements.client.steam.model.*;
 import com.foxobyte.steam_achievements.client.steam.response.SteamApiResponse;
 import com.foxobyte.steam_achievements.client.steam.response.SteamGameSchemaResponse;
 import com.foxobyte.steam_achievements.client.steam.response.SteamPlayerStatisticsResponse;
-import com.foxobyte.steam_achievements.dao.Game;
-import com.foxobyte.steam_achievements.dao.GameAchievement;
-import com.foxobyte.steam_achievements.dao.Player;
-import com.foxobyte.steam_achievements.dao.PlayerAchievement;
-import com.foxobyte.steam_achievements.repo.GameAchievementRepository;
-import com.foxobyte.steam_achievements.repo.GameRepository;
-import com.foxobyte.steam_achievements.repo.PlayerAchievementRepository;
-import com.foxobyte.steam_achievements.repo.PlayerRepository;
+import com.foxobyte.steam_achievements.model.Game;
+import com.foxobyte.steam_achievements.model.GameAchievement;
+import com.foxobyte.steam_achievements.model.Player;
+import com.foxobyte.steam_achievements.model.PlayerAchievement;
+import com.foxobyte.steam_achievements.repo.*;
 import feign.FeignException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import static com.foxobyte.steam_achievements.config.Settings.API_KEY;
 import static com.foxobyte.steam_achievements.util.PrettyPrint.print;
@@ -29,24 +25,25 @@ import static java.util.stream.Collectors.toMap;
 @Service
 public class PlayerService {
     private final SteamFeignClient steamFeignClient;
-    private final GameRepository gameRepository;
-    private final GameAchievementRepository gameAchievementRepository;
+    private final GameJpa gameJpa;
+    private final GameAchievementJpa gameAchievementJpa;
     private final PlayerRepository playerRepository;
-    private final PlayerAchievementRepository playerAchievementRepository;
+    private final PlayerAchievementJpa playerAchievementJpa;
 
     @Autowired
     public PlayerService(
             SteamFeignClient steamFeignClient,
-            GameRepository gameRepository,
-            GameAchievementRepository gameAchievementRepository,
+            GameJpa gameJpa,
+            GameAchievementJpa gameAchievementJpa,
             PlayerRepository playerRepository,
-            PlayerAchievementRepository playerAchievementRepository
+            PlayerAchievementJpa playerAchievementJpa
+
     ) {
         this.steamFeignClient = steamFeignClient;
-        this.gameRepository = gameRepository;
-        this.gameAchievementRepository = gameAchievementRepository;
+        this.gameJpa = gameJpa;
+        this.gameAchievementJpa = gameAchievementJpa;
         this.playerRepository = playerRepository;
-        this.playerAchievementRepository = playerAchievementRepository;
+        this.playerAchievementJpa = playerAchievementJpa;
     }
 
     public Player getPlayer(Long steamId) throws NoSuchElementException {
@@ -60,7 +57,7 @@ public class PlayerService {
         Optional<Player> player = playerRepository.findJustPlayerById(steamId);
 
         if (player.isPresent()) {
-            player.get().setGames(gameRepository.findPlayerGamesBySteamId(steamId));
+            player.get().setGames(gameJpa.findPlayerGamesBySteamId(steamId));
 
             return player.get();
         }
@@ -73,7 +70,7 @@ public class PlayerService {
         player.setSteamId(steamId);
         Game game = new Game();
         game.setAppId(appId);
-        List<GameAchievement> achievements = gameAchievementRepository.findByGameAndPlayers(game, player);
+        List<GameAchievement> achievements = gameAchievementJpa.findByGameAndPlayers(game, player);
 
         return null;
     }
@@ -95,7 +92,7 @@ public class PlayerService {
                 List<PlayerAchievement> playerAchievements = fetchSteamPlayerStatistics(player.getSteamId(), game.getAppId()).getAchievements().stream().map(steamPlayerStatistics -> {
                     GameAchievement gameAchievement = gameAchievements.get(steamPlayerStatistics.getApiName());
 
-                    PlayerAchievement playerAchievement = playerAchievementRepository.findByGameAchievement(gameAchievement)
+                    PlayerAchievement playerAchievement = playerAchievementJpa.findByGameAchievement(gameAchievement)
                             .orElseGet(() -> buildPlayerAchievement(steamPlayerStatistics, gameAchievement, player));
 
                     player.addGameAchievement(gameAchievement);
@@ -103,7 +100,7 @@ public class PlayerService {
                     return playerAchievement;
                 }).toList();
 
-                return playerAchievementRepository.saveAll(playerAchievements);
+                return playerAchievementJpa.saveAll(playerAchievements);
             } catch (Exception e) {
                 System.out.println("nope");
             }
@@ -137,14 +134,14 @@ public class PlayerService {
     }
 
     public Game createGameIfNotExist(SteamGame steamGame) {
-        return gameRepository.findById(steamGame.getAppId()).orElseGet(() -> {
+        return gameJpa.findById(steamGame.getAppId()).orElseGet(() -> {
             try {
                 Game game = new Game();
                 game.setAppId(steamGame.getAppId());
                 game.setName(steamGame.getName());
                 game.setImageUrl("http://media.steampowered.com/steamcommunity/public/images/apps/" + steamGame.getAppId() + "/" + steamGame.getImgIconUrl() + ".jpg");
 
-                return gameRepository.save(game);
+                return gameJpa.save(game);
             } catch (Exception e) {
                 print(e);
                 return null;
@@ -161,11 +158,11 @@ public class PlayerService {
 
             if (optionalSteamGameAchievements.isPresent()) {
                 List<GameAchievement> gameAchievements = optionalSteamGameAchievements.get().stream().map(steamGameAchievement ->
-                        gameAchievementRepository.findBySteamNameAndGame(steamGameAchievement.getName(), game).orElse(buildGameAchievement(steamGameAchievement, game))
+                        gameAchievementJpa.findBySteamNameAndGame(steamGameAchievement.getName(), game).orElse(buildGameAchievement(steamGameAchievement, game))
                 ).toList();
 
                 game.setAchievements(gameAchievements);
-                return gameAchievementRepository.saveAll(gameAchievements);
+                return gameAchievementJpa.saveAll(gameAchievements);
             } else {
                 return new ArrayList<>();
             }

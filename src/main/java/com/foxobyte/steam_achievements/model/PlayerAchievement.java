@@ -1,4 +1,4 @@
-package com.foxobyte.steam_achievements.dao;
+package com.foxobyte.steam_achievements.model;
 
 import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
