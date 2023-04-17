@@ -15,7 +15,7 @@ public class PlayerAchievement {
     @JoinColumn(name = "steam_id", nullable = false)
     @JsonBackReference(value = "player-achievements")
     private Player player;
-    @OneToOne
+    @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "game_achievement_id", nullable = false)
     @JsonBackReference(value = "player-achievement")
     private GameAchievement gameAchievement;

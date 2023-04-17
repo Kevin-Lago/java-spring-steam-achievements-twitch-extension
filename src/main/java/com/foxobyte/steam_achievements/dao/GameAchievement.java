@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 
+import java.util.List;
 import java.util.Set;
 
 @Entity
@@ -21,12 +22,12 @@ public class GameAchievement {
     @JoinColumn(name = "app_id", nullable = false)
     @JsonBackReference(value = "game-achievements")
     private Game game;
-    @OneToOne(mappedBy = "gameAchievement")
+    @OneToOne(mappedBy = "gameAchievement", fetch = FetchType.LAZY)
     @JsonManagedReference(value = "player-achievement")
     private PlayerAchievement playerAchievement;
     @ManyToMany(mappedBy = "gameAchievements", fetch = FetchType.LAZY)
     @JsonBackReference(value = "player-game-achievements")
-    private Set<Player> players;
+    private List<Player> players;
 
     public Long getId() {
         return id;
@@ -92,11 +93,11 @@ public class GameAchievement {
         this.playerAchievement = playerAchievement;
     }
 
-    public Set<Player> getPlayers() {
+    public List<Player> getPlayers() {
         return players;
     }
 
-    public void setPlayers(Set<Player> players) {
+    public void setPlayers(List<Player> players) {
         this.players = players;
     }
 

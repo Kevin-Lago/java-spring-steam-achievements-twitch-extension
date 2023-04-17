@@ -4,6 +4,8 @@ import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 
 @Entity
@@ -15,13 +17,10 @@ public class Game {
     private String imageUrl;
     @ManyToMany(mappedBy = "games", fetch = FetchType.LAZY)
     @JsonBackReference(value = "player-games")
-    private Set<Player> players;
+    private List<Player> players;
     @OneToMany(mappedBy = "game", fetch = FetchType.LAZY)
     @JsonManagedReference(value = "game-achievements")
-    private Set<GameAchievement> achievements;
-//    @OneToMany(mappedBy = "game", fetch = FetchType.LAZY)
-//    @JsonManagedReference(value = "game-player-achievements")
-//    private Set<PlayerAchievement> playerAchievements;
+    private List<GameAchievement> achievements;
 
     public Long getAppId() {
         return appId;
@@ -47,11 +46,11 @@ public class Game {
         this.imageUrl = imageUrl;
     }
 
-    public Set<Player> getPlayers() {
+    public List<Player> getPlayers() {
         return players;
     }
 
-    public void setPlayers(Set<Player> players) {
+    public void setPlayers(List<Player> players) {
         this.players = players;
     }
 
@@ -67,23 +66,18 @@ public class Game {
         }
     }
 
-    public Set<GameAchievement> getAchievements() {
+    public List<GameAchievement> getAchievements() {
+        if (this.achievements == null) {
+            return new ArrayList<>();
+        }
         return achievements;
     }
 
-    public void setAchievements(Set<GameAchievement> achievements) {
+    public void setAchievements(List<GameAchievement> achievements) {
         this.achievements = achievements;
     }
 
     public void addAchievement(GameAchievement gameAchievement) {
         this.achievements.add(gameAchievement);
     }
-
-//    public Set<PlayerAchievement> getPlayerAchievements() {
-//        return playerAchievements;
-//    }
-//
-//    public void setPlayerAchievements(Set<PlayerAchievement> playerAchievements) {
-//        this.playerAchievements = playerAchievements;
-//    }
 }

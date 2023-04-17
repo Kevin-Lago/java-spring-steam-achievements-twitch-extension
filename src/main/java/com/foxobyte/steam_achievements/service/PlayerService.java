@@ -56,47 +56,62 @@ public class PlayerService {
         return player.get();
     }
 
-    public List<GameAchievement> getPlayerAchievements(Long steamId, Long appId) {
-        List<GameAchievement> achievements = gameAchievementRepository.findByGame(appId);
+    public Player getPlayerAndPlayerGames(Long steamId) {
+        Optional<Player> player = playerRepository.findJustPlayerById(steamId);
+
+        if (player.isPresent()) {
+            player.get().setGames(gameRepository.findPlayerGamesBySteamId(steamId));
+
+            return player.get();
+        }
 
         return null;
     }
 
-    public Player updatePlayerAchievements(Long steamId) throws Exception {
+    public List<GameAchievement> getPlayerAchievements(Long steamId, Long appId) {
+        Player player = new Player();
+        player.setSteamId(steamId);
+        Game game = new Game();
+        game.setAppId(appId);
+        List<GameAchievement> achievements = gameAchievementRepository.findByGameAndPlayers(game, player);
+
+        return null;
+    }
+
+    public Player initializePlayer(Long steamId) throws Exception {
         Player player = createPlayerIfNotExist(steamId);
         List<Game> games = fetchSteamOwnedGames(steamId).getGames().stream().limit(4).map(this::createGameIfNotExist).filter(Objects::nonNull).toList();
-        games.stream().forEach(this::createGameAchievementsIfNotExists);
-
-        // ToDo: Consider rewriting this
-        games.forEach(game -> {
-            Map<String, GameAchievement> gameAchievements = game.getAchievements().stream().collect(toMap(GameAchievement::getSteamName, Function.identity()));
-
-            try {
-                if (game.getAchievements().size() > 0) {
-                    List<PlayerAchievement> playerAchievements = fetchSteamPlayerStatistics(steamId, game.getAppId()).getAchievements().stream().map(steamPlayerStatistics -> {
-                        GameAchievement gameAchievement = gameAchievements.get(steamPlayerStatistics.getApiName());
-
-                        PlayerAchievement playerAchievement = playerAchievementRepository.findByAchievedAndUnlockTimeAndGameAchievementIdAndPlayer(
-                                steamPlayerStatistics.getAchieved(), steamPlayerStatistics.getUnlockTime(), gameAchievement.getId(), player
-                        ).orElseGet(() ->
-                                buildPlayerAchievement(steamPlayerStatistics, gameAchievement, player)
-                        );
-
-                        player.addGameAchievement(gameAchievement);
-                        return playerAchievement;
-                    }).toList();
-
-                    playerAchievementRepository.saveAll(playerAchievements);
-                }
-            } catch (Exception e) {
-                print(e);
-            }
-
-            player.addGame(game);
-            playerRepository.save(player);
-        });
+        games.forEach(this::createGameAchievementsIfNotExists);
+        games.forEach(game -> createPlayerAchievementsIfNotExist(player, game));
 
         return player;
+    }
+
+    private List<PlayerAchievement> createPlayerAchievementsIfNotExist(Player player, Game game) {
+        Map<String, GameAchievement> gameAchievements = game.getAchievements().stream().collect(toMap(GameAchievement::getSteamName, Function.identity()));
+
+        if (game.getAchievements().size() > 0) {
+            try {
+                List<PlayerAchievement> playerAchievements = fetchSteamPlayerStatistics(player.getSteamId(), game.getAppId()).getAchievements().stream().map(steamPlayerStatistics -> {
+                    GameAchievement gameAchievement = gameAchievements.get(steamPlayerStatistics.getApiName());
+
+                    PlayerAchievement playerAchievement = playerAchievementRepository.findByGameAchievement(gameAchievement)
+                            .orElseGet(() -> buildPlayerAchievement(steamPlayerStatistics, gameAchievement, player));
+
+                    player.addGameAchievement(gameAchievement);
+                    player.addPlayerAchievement(playerAchievement);
+                    return playerAchievement;
+                }).toList();
+
+                return playerAchievementRepository.saveAll(playerAchievements);
+            } catch (Exception e) {
+                System.out.println("nope");
+            }
+        }
+
+        player.addGame(game);
+        playerRepository.save(player);
+        return null;
     }
 
     private Player createPlayerIfNotExist(Long steamId) {
@@ -111,7 +126,7 @@ public class PlayerService {
                 player.setTimeCreated(steamPlayerDetails.getTimeCreated());
                 player.setLastLogOff(steamPlayerDetails.getLastLogOff());
                 player.setProfileUrl(steamPlayerDetails.getProfileUrl());
-                player.setGames(new HashSet<>());
+                player.setGames(new ArrayList<>());
 
                 return playerRepository.save(player);
             } catch (Exception e) {
@@ -145,15 +160,15 @@ public class PlayerService {
                     .map(SteamAvailableGameStats::getSteamGameAchievements);
 
             if (optionalSteamGameAchievements.isPresent()) {
-                Set<GameAchievement> gameAchievements = optionalSteamGameAchievements.get().stream().map(steamGameAchievement ->
+                List<GameAchievement> gameAchievements = optionalSteamGameAchievements.get().stream().map(steamGameAchievement ->
                         gameAchievementRepository.findBySteamNameAndGame(steamGameAchievement.getName(), game).orElse(buildGameAchievement(steamGameAchievement, game))
-                ).collect(Collectors.toSet());
+                ).toList();
 
                 game.setAchievements(gameAchievements);
                 return gameAchievementRepository.saveAll(gameAchievements);
+            } else {
+                return new ArrayList<>();
             }
-
-            return null;
         } catch (Exception e) {
             print(e);
 

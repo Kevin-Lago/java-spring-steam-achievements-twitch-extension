@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonBackReference;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 
+import java.util.List;
 import java.util.Set;
 
 @Entity
@@ -16,21 +17,21 @@ public class Player {
     private String avatarHash;
     private Long lastLogOff;
     private Long timeCreated;
-    @ManyToMany(fetch = FetchType.EAGER)
+    @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(name = "games_players",
-            joinColumns = {@JoinColumn(name = "steam_id")},
-            inverseJoinColumns = {@JoinColumn(name = "app_id")})
+            joinColumns = {@JoinColumn(name = "steam_id", referencedColumnName = "steamId")},
+            inverseJoinColumns = {@JoinColumn(name = "app_id", referencedColumnName = "appId")})
     @JsonManagedReference(value = "player-games")
-    private Set<Game> games;
-    @OneToMany(mappedBy = "player", fetch = FetchType.EAGER)
+    private List<Game> games;
+    @OneToMany(mappedBy = "player", fetch = FetchType.LAZY)
     @JsonManagedReference(value = "player-achievements")
-    private Set<PlayerAchievement> playerAchievements;
-    @ManyToMany(fetch = FetchType.EAGER)
+    private List<PlayerAchievement> playerAchievements;
+    @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(name = "players_game_achievements",
-            joinColumns = {@JoinColumn(name = "steam_id")},
-            inverseJoinColumns = {@JoinColumn(name = "game_achievement_id")})
-    @JsonBackReference(value = "player-game-achievements")
-    private Set<GameAchievement> gameAchievements;
+            joinColumns = {@JoinColumn(name = "steam_id", referencedColumnName = "steamId")},
+            inverseJoinColumns = {@JoinColumn(name = "game_achievement_id", referencedColumnName = "id")})
+    @JsonManagedReference(value = "player-game-achievements")
+    private List<GameAchievement> gameAchievements;
 
     public Long getSteamId() {
         return steamId;
@@ -80,31 +81,35 @@ public class Player {
         this.timeCreated = timeCreated;
     }
 
-    public Set<Game> getGames() {
+    public List<Game> getGames() {
         return games;
     }
 
-    public void setGames(Set<Game> game) {
-        this.games = game;
+    public void setGames(List<Game> games) {
+        this.games = games;
     }
 
     public void addGame(Game game) {
         this.games.add(game);
     }
 
-    public Set<PlayerAchievement> getPlayerAchievements() {
+    public List<PlayerAchievement> getPlayerAchievements() {
         return playerAchievements;
     }
 
-    public void setPlayerAchievements(Set<PlayerAchievement> playerAchievements) {
+    public void setPlayerAchievements(List<PlayerAchievement> playerAchievements) {
         this.playerAchievements = playerAchievements;
     }
 
-    public Set<GameAchievement> getGameAchievements() {
+    public void addPlayerAchievement(PlayerAchievement playerAchievement) {
+        this.playerAchievements.add(playerAchievement);
+    }
+
+    public List<GameAchievement> getGameAchievements() {
         return gameAchievements;
     }
 
-    public void setGameAchievements(Set<GameAchievement> gameAchievements) {
+    public void setGameAchievements(List<GameAchievement> gameAchievements) {
         this.gameAchievements = gameAchievements;
     }
 
