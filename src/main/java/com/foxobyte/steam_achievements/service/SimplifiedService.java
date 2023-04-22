@@ -22,7 +22,7 @@ public class SimplifiedService {
     public Player getPlayer(Long steamId) throws Exception {
         SteamPlayerDetails steamPlayerDetails = steamService.fetchSteamPlayerDetails(steamId);
         Player player = buildPlayer(steamPlayerDetails);
-        player.setGames(steamService.fetchSteamOwnedGames(steamId).getGames().stream().map(this::buildGame).toList());
+        player.setGames(steamService.fetchSteamOwnedGamesWithAchievements(steamId).getGames().stream().map(this::buildGame).toList());
 
         return player;
     }

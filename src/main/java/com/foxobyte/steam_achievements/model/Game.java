@@ -10,6 +10,9 @@ import java.util.List;
 @Entity
 @Table(name = "games")
 public class Game {
+    void Game() {
+
+    }
     @Id
     private Long appId;
     private String name;

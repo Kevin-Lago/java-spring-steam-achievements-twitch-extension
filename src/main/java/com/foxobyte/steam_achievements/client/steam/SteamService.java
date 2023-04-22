@@ -38,6 +38,33 @@ public class SteamService {
         }
     }
 
+    public SteamOwnedGames fetchSteamOwnedGamesWithAchievements(Long steamId) throws Exception {
+        try {
+            SteamApiResponse<SteamOwnedGames> response = steamFeignClient.getOwnedGames(
+                    API_KEY, steamId, "true", "true", "json"
+            ).getBody();
+
+            if (response.getResponse() == null)
+                throw new Exception("Failed to fetch steam owned games with steam id: " + steamId);
+
+            List<SteamGame> ownedGamesWithAchievements = response.getResponse().getGames().stream().filter(steamGame -> {
+                try {
+                    return fetchSteamGameSchema(steamGame.getAppId()).getAvailableGameStats().getSteamGameAchievements().size() > 0;
+                } catch (Exception e) {
+                    System.out.println();
+                    return false;
+                }
+            }).toList();
+
+            response.getResponse().setGames(ownedGamesWithAchievements);
+            return response.getResponse();
+        } catch (Exception e) {
+            System.out.println();
+
+            return null;
+        }
+    }
+
     public SteamGameSchema fetchSteamGameSchema(Long appId) throws Exception {
         SteamGameSchemaResponse response = steamFeignClient.getSteamGameSchema(
                 API_KEY, appId, "english", "json"
